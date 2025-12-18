@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Example configuration for Kafka Log4j2 Appender.
+
+    Copy this file to your classpath as log4j2.xml and modify as needed.
+
+    Features demonstrated:
+    1. Basic Kafka appender with PatternLayout
+    2. JSON formatted logs
+    3. Secure Kafka connection
+    4. Async appender for better performance
+    5. Multiple loggers with different configurations
+-->
+<Configuration status="WARN" packages="com.github.kafka.log4j2">
+    <Properties>
+        <!-- These properties can be overridden by system properties or environment variables -->
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
+        <Property name="KAFKA_TOPIC">${env:KAFKA_LOG_TOPIC:-application-logs}</Property>
+        <Property name="KAFKA_BOOTSTRAP_SERVERS">${env:KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}</Property>
+        <Property name="APP_NAME">${env:APP_NAME:-my-application}</Property>
+    </Properties>
+
+    <Appenders>
+        <!-- Console Appender for local development -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+        </Console>
+
+        <!-- File Appender for backup/fallback -->
+        <RollingFile name="FileAppender"
+                     fileName="logs/application.log"
+                     filePattern="logs/application-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="100 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10"/>
+        </RollingFile>
+
+        <!-- Basic Kafka Appender with PatternLayout -->
+        <KafkaAppender name="KafkaPatternAppender"
+                      topic="${KAFKA_TOPIC}"
+                      bootstrapServers="${KAFKA_BOOTSTRAP_SERVERS}"
+                      keySerializer="org.apache.kafka.common.serialization.StringSerializer"
+                      valueSerializer="org.apache.kafka.common.serialization.StringSerializer"
+                      ignoreExceptions="true">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <!-- Optional additional properties -->
+            <Properties>
+                <Property name="client.id">${APP_NAME}</Property>
+                <Property name="max.block.ms">5000</Property>
+            </Properties>
+        </KafkaAppender>
+
+        <!-- Kafka Appender with JSON Layout for structured logging -->
+        <KafkaAppender name="KafkaJsonAppender"
+                      topic="${KAFKA_TOPIC}-json"
+                      bootstrapServers="${KAFKA_BOOTSTRAP_SERVERS}"
+                      ignoreExceptions="true">
+            <JsonLayout includeTimestamp="true"
+                       includeThreadInfo="true"
+                       includeStackTrace="true"
+                       includeContextData="true"
+                       timestampFormat="yyyy-MM-dd'T'HH:mm:ss.SSSZ"/>
+        </KafkaAppender>
+
+        <!-- Secure Kafka connection example (commented out) -->
+        <!--
+        <KafkaAppender name="KafkaSecureAppender"
+                      topic="${KAFKA_TOPIC}-secure"
+                      bootstrapServers="kafka.example.com:9093"
+                      ignoreExceptions="true">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Properties>
+                <Property name="security.protocol">SASL_SSL</Property>
+                <Property name="sasl.mechanism">PLAIN</Property>
+                <Property name="sasl.jaas.config">
+                    org.apache.kafka.common.security.plain.PlainLoginModule required \
+                    username="${env:KAFKA_USERNAME}" \
+                    password="${env:KAFKA_PASSWORD}";
+                </Property>
+                <Property name="ssl.truststore.location">${env:SSL_TRUSTSTORE_LOCATION}</Property>
+                <Property name="ssl.truststore.password">${env:SSL_TRUSTSTORE_PASSWORD}</Property>
+            </Properties>
+        </KafkaAppender>
+        -->
+
+        <!-- Async Appender wrapper for better performance -->
+        <Async name="AsyncKafka" bufferSize="8192" blocking="false">
+            <AppenderRef ref="KafkaPatternAppender"/>
+        </Async>
+
+        <!-- Async wrapper for JSON appender -->
+        <Async name="AsyncKafkaJson" bufferSize="8192" blocking="false">
+            <AppenderRef ref="KafkaJsonAppender"/>
+        </Async>
+    </Appenders>
+
+    <Loggers>
+        <!-- Root logger - all logs go here -->
+        <Root level="INFO">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="FileAppender"/>
+            <AppenderRef ref="AsyncKafka"/>
+            <AppenderRef ref="AsyncKafkaJson"/>
+        </Root>
+
+        <!-- Application-specific logger with more detail -->
+        <Logger name="com.github.example" level="DEBUG" additivity="false">
+            <AppenderRef ref="Console" level="DEBUG"/>
+            <AppenderRef ref="AsyncKafka" level="INFO"/>
+            <AppenderRef ref="AsyncKafkaJson" level="INFO"/>
+        </Logger>
+
+        <!-- Important: Prevent Kafka client logs from being sent to Kafka (avoid recursion) -->
+        <Logger name="org.apache.kafka" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="FileAppender"/>
+        </Logger>
+
+        <!-- Reduce noise from other libraries -->
+        <Logger name="org.springframework" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <Logger name="org.hibernate" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+    </Loggers>
+</Configuration>

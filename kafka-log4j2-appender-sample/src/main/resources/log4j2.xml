@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Properties>
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
+        <Property name="KAFKA_TOPIC">${sys:log4j2.kafka.topic:-example-logs}</Property>
+        <Property name="KAFKA_BOOTSTRAP_SERVERS">${sys:log4j2.kafka.bootstrap.servers:-localhost:9092}</Property>
+        <Property name="KAFKA_KEY_SERIALIZER">${sys:log4j2.kafka.key.serializer:-org.apache.kafka.common.serialization.StringSerializer}</Property>
+        <Property name="KAFKA_VALUE_SERIALIZER">${sys:log4j2.kafka.value.serializer:-org.apache.kafka.common.serialization.StringSerializer}</Property>
+        <Property name="KAFKA_IGNORE_EXCEPTIONS">${sys:log4j2.kafka.ignore.exceptions:-true}</Property>
+        <Property name="APP_NAME">${sys:log4j2.app.name:-kafka-log4j2-example}</Property>
+    </Properties>
+
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+        </Console>
+
+        <KafkaAppender name="KafkaAppender"
+                       topic="${KAFKA_TOPIC}"
+                       bootstrapServers="${KAFKA_BOOTSTRAP_SERVERS}"
+                       keySerializer="${KAFKA_KEY_SERIALIZER}"
+                       valueSerializer="${KAFKA_VALUE_SERIALIZER}"
+                       ignoreExceptions="${KAFKA_IGNORE_EXCEPTIONS}">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+        </KafkaAppender>
+
+        <KafkaAppender name="KafkaJsonAppender"
+                       topic="${KAFKA_TOPIC}-json"
+                       bootstrapServers="${KAFKA_BOOTSTRAP_SERVERS}"
+                       ignoreExceptions="${KAFKA_IGNORE_EXCEPTIONS}">
+            <JsonLayout includeTimestamp="true"
+                        includeThreadInfo="true"
+                        includeStackTrace="true"
+                        includeContextData="true"
+                        timestampFormat="yyyy-MM-dd'T'HH:mm:ss.SSSZ"/>
+        </KafkaAppender>
+    </Appenders>
+
+    <Loggers>
+        <Root level="INFO">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="KafkaAppender"/>
+            <AppenderRef ref="KafkaJsonAppender"/>
+        </Root>
+
+        <Logger name="com.remaslover" level="INFO" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="KafkaAppender"/>
+        </Logger>
+
+        <Logger name="com.remaslover.example" level="DEBUG" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="KafkaAppender"/>
+            <AppenderRef ref="KafkaJsonAppender"/>
+        </Logger>
+
+        <Logger name="org.apache.kafka" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+    </Loggers>
+</Configuration>

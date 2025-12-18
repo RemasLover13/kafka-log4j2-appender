@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Properties>
+        <Property name="LOG_PATTERN">%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
+    </Properties>
+
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+        </Console>
+
+        <KafkaAppender name="KafkaTest"
+                       topic="test-topic"
+                       bootstrapServers="localhost:9092"
+                       keySerializer="org.apache.kafka.common.serialization.StringSerializer"
+                       valueSerializer="org.apache.kafka.common.serialization.StringSerializer"
+                       ignoreExceptions="false">
+            <PatternLayout pattern="TEST: %m%n"/>
+        </KafkaAppender>
+
+        <KafkaAppender name="KafkaJsonTest"
+                       topic="test-topic-json"
+                       bootstrapServers="localhost:9092"
+                       ignoreExceptions="false">
+            <JsonLayout includeTimestamp="true"
+                        includeThreadInfo="true"
+                        includeStackTrace="true"
+                        includeContextData="true"
+                        timestampFormat="epoch_millis"/>
+        </KafkaAppender>
+    </Appenders>
+
+    <Loggers>
+        <Root level="DEBUG">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="KafkaTest"/>
+            <AppenderRef ref="KafkaJsonTest"/>
+        </Root>
+
+        <Logger name="org.apache.kafka" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <Logger name="com.remaslover" level="INFO" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+    </Loggers>
+</Configuration>
